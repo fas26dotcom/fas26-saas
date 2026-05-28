@@ -39,8 +39,14 @@ export async function POST(request: NextRequest) {
       userId: user.id
     })
 
-  } catch (error) {
-    console.error("Signup error:", error)
+  } catch (error: any) {
+    console.error("Signup error:", error?.message || error)
+    
+    // Check for common deployment issues
+    if (error?.message?.includes("connect") || error?.message?.includes("ECONNREFUSED") || error?.code === "ENOTFOUND") {
+      return NextResponse.json({ success: false, error: "Database connection failed. Check DATABASE_URL environment variable." }, { status: 500 })
+    }
+    
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 })
   }
 }
