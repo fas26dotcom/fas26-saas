@@ -10,13 +10,14 @@ function createPrismaClient() {
     throw new Error('DATABASE_URL environment variable is not set')
   }
 
+  // If we're on Vercel, we need to ensure pg connects over TCP/IP using pg's default settings
   const pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
-    // Disable prepared statements for Supabase Transaction Pooler (port 6543)
-    // PgBouncer/Supavisor in transaction mode doesn't support them
-    prepare: false,
-  } as any)
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  })
 
   const adapter = new PrismaPg(pool)
 
