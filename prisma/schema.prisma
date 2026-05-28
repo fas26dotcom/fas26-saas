@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String?
+  password      String
+  role          Role        @default(USER)
+  plan          String      @default("TRIAL")
+  videoGeneratedCount Int      @default(0)
+  audioGeneratedCount Int      @default(0)
+  workspaces    Workspace[] @relation("WorkspaceMembers")
+  ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
+  assignedTasks   Task[]      @relation("TaskAssignee")
+  reportedTasks   Task[]      @relation("TaskReporter")
+  notes           Note[]      @relation("UserNotes")
+  contents        Content[]   @relation("UserContents")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  USER
+  GUEST
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members     User[]   @relation("WorkspaceMembers")
+  tasks       Task[]   @relation("WorkspaceTasks")
+  notes       Note[]   @relation("WorkspaceNotes")
+  content     Content[] @relation("WorkspaceContent")
+  integrations Integration[] @relation("WorkspaceIntegrations")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  assigneeId  String?
+  assignee    User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporterId  String?
+  reporter    User?    @relation("TaskReporter", fields: [reporterId], references: [id])
+  workspaceId String?
+  workspace   Workspace? @relation("WorkspaceTasks", fields: [workspaceId], references: [id])
+  userId      String?
+  dueDate     DateTime?
+  startDate   DateTime?
+  estimatedHours Int?
+  spentHours  Int      @default(0)
+  checklist   Json?
+  attachments Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?
+  workspaceId String?
+  workspace   Workspace? @relation("WorkspaceNotes", fields: [workspaceId], references: [id])
+  authorId    String
+  author      User     @relation("UserNotes", fields: [authorId], references: [id])
+  tags        String[]
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  time        String
+  type        String   @default("meeting")
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Content {
+  id          String   @id @default(cuid())
+  title       String
+  prompt      String
+  generatedText String?
+  generatedImageUrl String?
+  generatedVideoUrl String?
+  generatedAudioUrl String?
+  type        ContentType
+  workspaceId String
+  workspace   Workspace @relation("WorkspaceContent", fields: [workspaceId], references: [id])
+  creatorId   String
+  creator     User     @relation("UserContents", fields: [creatorId], references: [id])
+  seoScore    Float?
+  readability Float?
+  plagiarismScore Float?
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ContentType {
+  BLOG_POST
+  SOCIAL_CAPTION
+  EMAIL_NEWSLETTER
+  AD_COPY
+  PRODUCT_DESCRIPTION
+  VIDEO_SCRIPT
+  AUDIO_SNIPPET
+  IMAGE
+}
+
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  config      Json?
+  workspaceId String
+  workspace   Workspace @relation("WorkspaceIntegrations", fields: [workspaceId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
