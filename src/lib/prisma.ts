@@ -13,9 +13,12 @@ export const prisma = new Proxy({} as PrismaClient, {
         throw new Error("DATABASE_URL is not set")
       }
 
+      // Strip any sslmode query parameter to prevent conflicts with our manual SSL settings
+      const cleanConnectionString = connectionString.replace(/([?&])sslmode=[^&]*/g, '$1').replace(/[?&]$/, '')
+
       const pool = new pg.Pool({
-        connectionString,
-        ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+        connectionString: cleanConnectionString,
+        ssl: { rejectUnauthorized: false },
       })
       const adapter = new PrismaPg(pool)
 
