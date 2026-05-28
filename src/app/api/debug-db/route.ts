@@ -4,14 +4,14 @@ import pg from "pg"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-async function testConnection(label: string, config: pg.PoolConfig): Promise<string> {
+async function testConnection(config: pg.PoolConfig): Promise<string> {
   try {
-    const pool = new pg.Pool({ ...config, connectionTimeoutMillis: 8000 })
+    const pool = new pg.Pool({ ...config, connectionTimeoutMillis: 10000 })
     const client = await pool.connect()
     const res = await client.query("SELECT 1 as test")
     client.release()
     await pool.end()
-    return `SUCCESS`
+    return "SUCCESS"
   } catch (e: any) {
     return `FAILED - ${e.message}`
   }
@@ -23,58 +23,79 @@ export async function GET() {
     return NextResponse.json({ error: "DATABASE_URL not set" })
   }
 
-  const parsed = new URL(dbUrl)
-  const password = decodeURIComponent(parsed.password)
+  const password = decodeURIComponent(new URL(dbUrl).password)
   const projectRef = "zczjuvgmvufxdcthzlal"
+  const sslOff = { rejectUnauthorized: false }
 
-  // Common connection settings
-  const baseConfig = {
-    database: "postgres",
-    user: `postgres.${projectRef}`,
-    password,
-    ssl: { rejectUnauthorized: false },
-  }
-
-  // Test multiple configurations in parallel
   const results: Record<string, string> = {}
 
-  // 1. Direct database connection (port 5432, no pooler)
-  results["direct_5432"] = await testConnection("direct", {
+  // 1. Exact local .env config (username=postgres, host=db.xxx.supabase.co, port=6543)
+  results["local_exact_6543"] = await testConnection({
+    host: `db.${projectRef}.supabase.co`,
+    port: 6543,
+    database: "postgres",
+    user: "postgres",
+    password,
+    ssl: sslOff,
+  })
+
+  // 2. Direct connection port 5432
+  results["direct_5432"] = await testConnection({
     host: `db.${projectRef}.supabase.co`,
     port: 5432,
     database: "postgres",
-    user: "postgres",  // direct connection uses plain "postgres"
+    user: "postgres",
     password,
-    ssl: { rejectUnauthorized: false },
+    ssl: sslOff,
   })
 
-  // 2. Try the pooler host from the current DATABASE_URL
-  results[`current_pooler_${parsed.hostname}`] = await testConnection("current", {
-    ...baseConfig,
-    host: parsed.hostname,
-    port: parseInt(parsed.port) || 6543,
+  // 3. Current Vercel pooler config
+  results["current_vercel"] = await testConnection({
+    host: new URL(dbUrl).hostname,
+    port: parseInt(new URL(dbUrl).port) || 6543,
+    database: "postgres",
+    user: `postgres.${projectRef}`,
+    password,
+    ssl: sslOff,
   })
 
-  // 3. Try common Supabase pooler regions
+  // 4-9. All major pooler regions with postgres.ref username
   const regions = [
     "aws-0-ap-south-1",
-    "aws-0-ap-southeast-1", 
+    "aws-0-ap-southeast-1",
+    "aws-0-us-east-1",
+    "aws-0-us-east-2",
     "aws-0-us-west-1",
+    "aws-0-us-west-2",
     "aws-0-eu-west-1",
+    "aws-0-eu-west-2",
     "aws-0-eu-central-1",
   ]
 
   for (const region of regions) {
-    const host = `${region}.pooler.supabase.com`
-    results[`pooler_${region}`] = await testConnection(region, {
-      ...baseConfig,
-      host,
+    results[`pooler_${region}`] = await testConnection({
+      host: `${region}.pooler.supabase.com`,
       port: 6543,
+      database: "postgres",
+      user: `postgres.${projectRef}`,
+      password,
+      ssl: sslOff,
     })
   }
 
+  // 10. DNS resolution test
+  let dnsResult = "not tested"
+  try {
+    const dns = require("dns").promises
+    const addresses = await dns.resolve4(`db.${projectRef}.supabase.co`)
+    dnsResult = `Resolved to: ${addresses.join(", ")}`
+  } catch (e: any) {
+    dnsResult = `DNS FAILED: ${e.message}`
+  }
+
   return NextResponse.json({
-    currentUrl: `${parsed.protocol}//${parsed.username}:****@${parsed.hostname}:${parsed.port}${parsed.pathname}`,
+    currentUrl: `...@${new URL(dbUrl).hostname}:${new URL(dbUrl).port}`,
+    dnsLookup: dnsResult,
     results,
     timestamp: new Date().toISOString(),
   })
