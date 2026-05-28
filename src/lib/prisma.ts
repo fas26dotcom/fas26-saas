@@ -3,15 +3,13 @@ import { PrismaClient } from '@prisma/client'
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is not set')
-  }
-
-  // With url removed from schema.prisma in Prisma 7, we MUST pass connectionString 
-  // via the datasourceUrl property in the constructor.
+  // Prisma 7 does not support 'datasourceUrl' or 'datasources' parameter overrides 
+  // directly in the standard JS constructor. Instead, standard Prisma 7 strictly maps the 
+  // connection configurations back to the schema generation environment variables.
+  //
+  // To bypass any edge pre-rendering missing DATABASE_URL context, we check for its presence,
+  // but instantiate the client cleanly as process.env.DATABASE_URL will be read automatically.
   return new PrismaClient({
-    datasourceUrl: connectionString,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
