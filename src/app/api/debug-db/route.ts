@@ -4,57 +4,78 @@ import pg from "pg"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
+async function testConnection(label: string, config: pg.PoolConfig): Promise<string> {
+  try {
+    const pool = new pg.Pool({ ...config, connectionTimeoutMillis: 8000 })
+    const client = await pool.connect()
+    const res = await client.query("SELECT 1 as test")
+    client.release()
+    await pool.end()
+    return `SUCCESS`
+  } catch (e: any) {
+    return `FAILED - ${e.message}`
+  }
+}
+
 export async function GET() {
   const dbUrl = process.env.DATABASE_URL
-
-  // Mask password for safe display
-  let maskedUrl = "NOT SET"
-  let parsedInfo: any = {}
-  if (dbUrl) {
-    try {
-      const parsed = new URL(dbUrl)
-      maskedUrl = `${parsed.protocol}//${parsed.username}:****@${parsed.hostname}:${parsed.port}${parsed.pathname}`
-      parsedInfo = {
-        protocol: parsed.protocol,
-        username: decodeURIComponent(parsed.username),
-        hostname: parsed.hostname,
-        port: parsed.port,
-        database: parsed.pathname.slice(1),
-      }
-    } catch (e: any) {
-      maskedUrl = `PARSE ERROR: ${e.message}`
-    }
+  if (!dbUrl) {
+    return NextResponse.json({ error: "DATABASE_URL not set" })
   }
 
-  // Attempt connection using decomposed parameters (no connectionString)
-  let connectionResult = "not attempted"
-  if (dbUrl) {
-    try {
-      const parsed = new URL(dbUrl)
-      const pool = new pg.Pool({
-        host: parsed.hostname,
-        port: parseInt(parsed.port) || 6543,
-        database: parsed.pathname.slice(1),
-        user: decodeURIComponent(parsed.username),
-        password: decodeURIComponent(parsed.password),
-        ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 10000,
-      })
-      const client = await pool.connect()
-      const res = await client.query("SELECT 1 as test")
-      client.release()
-      await pool.end()
-      connectionResult = `SUCCESS - query returned: ${JSON.stringify(res.rows)}`
-    } catch (e: any) {
-      connectionResult = `FAILED - ${e.message}`
-    }
+  const parsed = new URL(dbUrl)
+  const password = decodeURIComponent(parsed.password)
+  const projectRef = "zczjuvgmvufxdcthzlal"
+
+  // Common connection settings
+  const baseConfig = {
+    database: "postgres",
+    user: `postgres.${projectRef}`,
+    password,
+    ssl: { rejectUnauthorized: false },
+  }
+
+  // Test multiple configurations in parallel
+  const results: Record<string, string> = {}
+
+  // 1. Direct database connection (port 5432, no pooler)
+  results["direct_5432"] = await testConnection("direct", {
+    host: `db.${projectRef}.supabase.co`,
+    port: 5432,
+    database: "postgres",
+    user: "postgres",  // direct connection uses plain "postgres"
+    password,
+    ssl: { rejectUnauthorized: false },
+  })
+
+  // 2. Try the pooler host from the current DATABASE_URL
+  results[`current_pooler_${parsed.hostname}`] = await testConnection("current", {
+    ...baseConfig,
+    host: parsed.hostname,
+    port: parseInt(parsed.port) || 6543,
+  })
+
+  // 3. Try common Supabase pooler regions
+  const regions = [
+    "aws-0-ap-south-1",
+    "aws-0-ap-southeast-1", 
+    "aws-0-us-west-1",
+    "aws-0-eu-west-1",
+    "aws-0-eu-central-1",
+  ]
+
+  for (const region of regions) {
+    const host = `${region}.pooler.supabase.com`
+    results[`pooler_${region}`] = await testConnection(region, {
+      ...baseConfig,
+      host,
+      port: 6543,
+    })
   }
 
   return NextResponse.json({
-    databaseUrl: maskedUrl,
-    parsedInfo,
-    connectionResult,
-    nodeEnv: process.env.NODE_ENV,
+    currentUrl: `${parsed.protocol}//${parsed.username}:****@${parsed.hostname}:${parsed.port}${parsed.pathname}`,
+    results,
     timestamp: new Date().toISOString(),
   })
 }
