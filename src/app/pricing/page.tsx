@@ -106,14 +106,43 @@ function PricingContent() {
     }
   }, [searchParams])
 
-  const handleCheckout = (plan: typeof plans[0]) => {
+  const handleCheckout = async (plan: typeof plans[0]) => {
     if (plan.price === "$0" || plan.price === "Custom") {
       router.push("/dashboard")
       return
     }
-    setIsSimulatedMode(false)
-    setCheckoutModal({ active: true, plan: plan.name, price: plan.price })
-    setCheckoutStep("gateway")
+    
+    setLoadingPlan(plan.name)
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          planName: plan.name, 
+          price: plan.price,
+          gateway: "paypal" 
+        }),
+      })
+      const data = await response.json()
+      if (data.success && data.url) {
+        if (data.url.startsWith("http://") || data.url.startsWith("https://")) {
+          // Live or Sandbox direct PayPal Checkout Redirect
+          window.location.href = data.url
+        } else {
+          // Local fallback simulator when no credentials exist
+          setIsSimulatedMode(true)
+          setCheckoutModal({ active: true, plan: plan.name, price: plan.price })
+          setPaymentMethod("paypal")
+          setCheckoutStep("details")
+        }
+      } else {
+        alert("Failed to initiate payment gateway")
+      }
+    } catch {
+      alert("Error reaching checkout server")
+    } finally {
+      setLoadingPlan(null)
+    }
   }
 
   const handleProceedToPayment = async (gateway: "stripe" | "paypal") => {
