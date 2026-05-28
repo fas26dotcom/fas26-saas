@@ -13,18 +13,18 @@ export const prisma = new Proxy({} as PrismaClient, {
         throw new Error("DATABASE_URL is not set")
       }
 
-      // Use standard, safe URL parsing to cleanly remove the sslmode query parameter
-      let cleanConnectionString = connectionString
-      try {
-        const parsedUrl = new URL(connectionString)
-        parsedUrl.searchParams.delete('sslmode')
-        cleanConnectionString = parsedUrl.toString()
-      } catch (e) {
-        console.error("Failed to parse DATABASE_URL as a URL object:", e)
-      }
+      // Parse the URL into individual connection parameters to completely avoid
+      // sslmode query parameter conflicts with our explicit SSL configuration.
+      // Passing a connectionString lets pg re-parse sslmode=require and override
+      // our { rejectUnauthorized: false }, causing self-signed cert errors.
+      const parsed = new URL(connectionString)
 
       const pool = new pg.Pool({
-        connectionString: cleanConnectionString,
+        host: parsed.hostname,
+        port: parseInt(parsed.port) || 6543,
+        database: parsed.pathname.slice(1), // remove leading "/"
+        user: decodeURIComponent(parsed.username),
+        password: decodeURIComponent(parsed.password),
         ssl: { rejectUnauthorized: false },
       })
       const adapter = new PrismaPg(pool)

@@ -13,26 +13,30 @@ export async function GET() {
   if (dbUrl) {
     try {
       const parsed = new URL(dbUrl)
-      maskedUrl = `${parsed.protocol}//${parsed.username}:****@${parsed.hostname}:${parsed.port}${parsed.pathname}${parsed.search}`
+      maskedUrl = `${parsed.protocol}//${parsed.username}:****@${parsed.hostname}:${parsed.port}${parsed.pathname}`
       parsedInfo = {
         protocol: parsed.protocol,
-        username: parsed.username,
+        username: decodeURIComponent(parsed.username),
         hostname: parsed.hostname,
         port: parsed.port,
-        pathname: parsed.pathname,
-        search: parsed.search,
+        database: parsed.pathname.slice(1),
       }
     } catch (e: any) {
       maskedUrl = `PARSE ERROR: ${e.message}`
     }
   }
 
-  // Attempt raw pg connection
+  // Attempt connection using decomposed parameters (no connectionString)
   let connectionResult = "not attempted"
   if (dbUrl) {
     try {
+      const parsed = new URL(dbUrl)
       const pool = new pg.Pool({
-        connectionString: dbUrl,
+        host: parsed.hostname,
+        port: parseInt(parsed.port) || 6543,
+        database: parsed.pathname.slice(1),
+        user: decodeURIComponent(parsed.username),
+        password: decodeURIComponent(parsed.password),
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 10000,
       })
