@@ -87,6 +87,7 @@ function PricingContent() {
   const [paypalEmail, setPaypalEmail] = useState("")
   const [checkoutStep, setCheckoutStep] = useState<"gateway" | "details" | "success">("gateway")
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal" | null>(null)
+  const [isSimulatedMode, setIsSimulatedMode] = useState(false)
 
   useEffect(() => {
     const checkoutParam = searchParams.get("checkout")
@@ -97,6 +98,7 @@ function PricingContent() {
     if (checkoutParam === "simulated" && planParam && priceParam) {
       setCheckoutModal({ active: true, plan: planParam, price: priceParam })
       setCheckoutStep("gateway")
+      setIsSimulatedMode(true)
     }
 
     if (paymentSuccessParam === "success" && planParam) {
@@ -109,6 +111,7 @@ function PricingContent() {
       router.push("/dashboard")
       return
     }
+    setIsSimulatedMode(false)
     setCheckoutModal({ active: true, plan: plan.name, price: plan.price })
     setCheckoutStep("gateway")
   }
@@ -238,8 +241,14 @@ function PricingContent() {
                   <div className="inline-flex p-3 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 mb-2">
                     <Sparkles className="h-6 w-6 animate-pulse" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Secure Checkout Simulator</h3>
-                  <p className="text-xs text-slate-500">Choose a testing gateway to proceed with sandbox payment.</p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    {isSimulatedMode ? "Secure Checkout Simulator" : "Secure Checkout"}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {isSimulatedMode 
+                      ? "Choose a testing gateway to proceed with sandbox payment." 
+                      : "Choose your preferred payment method to upgrade your workspace."}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-center">
@@ -252,22 +261,33 @@ function PricingContent() {
                       onClick={() => handleProceedToPayment("stripe")}
                       className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-all font-semibold text-xs text-slate-800 dark:text-slate-200 text-left"
                     >
-                      <span className="flex items-center gap-2.5"><CreditCard className="h-4.5 w-4.5 text-indigo-500" /> Pay with Stripe Sandbox</span>
-                      <span className="text-[10px] text-slate-400 font-bold">Simulate Card</span>
+                      <span className="flex items-center gap-2.5">
+                        <CreditCard className="h-4.5 w-4.5 text-indigo-500" />
+                        {isSimulatedMode ? "Pay with Stripe Sandbox" : "Pay with Credit / Debit Card"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        {isSimulatedMode ? "Simulate Card" : "Visa, Mastercard, Amex"}
+                      </span>
                     </button>
 
                     <button 
                       onClick={() => handleProceedToPayment("paypal")}
                       className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-all font-semibold text-xs text-slate-800 dark:text-slate-200 text-left"
                     >
-                      <span className="flex items-center gap-2.5"><Wallet className="h-4.5 w-4.5 text-amber-500" /> Pay with PayPal Sandbox</span>
-                      <span className="text-[10px] text-slate-400 font-bold">Simulate Wallet</span>
+                      <span className="flex items-center gap-2.5">
+                        <Wallet className="h-4.5 w-4.5 text-amber-500" />
+                        {isSimulatedMode ? "Pay with PayPal Sandbox" : "Pay with PayPal Checkout"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        {isSimulatedMode ? "Simulate Wallet" : "Instant & Secure"}
+                      </span>
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-[10px] text-slate-500 justify-center">
-                  <ShieldCheck className="h-4.5 w-4.5 text-emerald-500" /> End-to-end sandbox connection
+                  <ShieldCheck className="h-4.5 w-4.5 text-emerald-500" />
+                  {isSimulatedMode ? "End-to-end sandbox connection" : "End-to-end SSL encryption active"}
                 </div>
               </div>
             )}
