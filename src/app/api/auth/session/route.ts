@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 
 export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
 
 const SECRET = process.env.NEXTAUTH_SECRET || "fas26_super_secret_auth_key_32_chars"
 
