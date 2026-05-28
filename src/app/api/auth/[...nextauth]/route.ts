@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
       authenticated: true,
       user
     })
-  } catch (error) {
-    console.error("Session fetch error:", error)
-    return NextResponse.json({ authenticated: false }, { status: 500 })
+  } catch (error: any) {
+    console.error("Session fetch error detailed:", error?.message || error)
+    return NextResponse.json({ authenticated: false, error: error?.message }, { status: 500 })
   }
 }
 
@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
 
     return response
 
-  } catch (error) {
-    console.error("Authentication error:", error)
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 })
+  } catch (error: any) {
+    console.error("Authentication error detailed:", error?.message || error)
+    return NextResponse.json({ success: false, error: "Internal Server Error", details: error?.message }, { status: 500 })
   }
 }
 
