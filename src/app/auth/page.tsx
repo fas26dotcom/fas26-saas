@@ -69,6 +69,11 @@ function AuthForm() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
+          <div className="flex justify-end text-sm">
+            <a href="/auth/forgot-password" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+              Forgot password?
+            </a>
+          </div>
           <Button className="w-full glow-btn bg-indigo-600 hover:bg-indigo-750 text-white shadow-lg" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
