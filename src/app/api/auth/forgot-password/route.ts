@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    const appUrl = process.env.NEXTAUTH_URL || "https://fas26-saas.vercel.app"
+    const appUrl = process.env.NEXTAUTH_URL || "https://app.fas26.com"
     const resetLink = `${appUrl}/auth/reset-password?token=${resetToken}`
 
     const emailHtml = `
