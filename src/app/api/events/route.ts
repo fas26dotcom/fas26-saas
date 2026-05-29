@@ -62,3 +62,78 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ event }, { status: 201 })
 }
+
+// DELETE /api/events — delete a calendar event
+export async function DELETE(request: NextRequest) {
+  const user = getUserFromRequest(request)
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get("id")
+
+  if (!id) {
+    return NextResponse.json({ error: "Event ID is required" }, { status: 400 })
+  }
+
+  const event = await prisma.calendarEvent.findUnique({
+    where: { id },
+  })
+
+  if (!event) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  }
+
+  if (event.userId !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  await prisma.calendarEvent.delete({
+    where: { id },
+  })
+
+  return NextResponse.json({ success: true })
+}
+
+// PATCH /api/events — update a calendar event
+export async function PATCH(request: NextRequest) {
+  const user = getUserFromRequest(request)
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get("id")
+
+  if (!id) {
+    return NextResponse.json({ error: "Event ID is required" }, { status: 400 })
+  }
+
+  const event = await prisma.calendarEvent.findUnique({
+    where: { id },
+  })
+
+  if (!event) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  }
+
+  if (event.userId !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const { title, date, time, type } = await request.json()
+
+  const updatedEvent = await prisma.calendarEvent.update({
+    where: { id },
+    data: {
+      title: title !== undefined ? title : event.title,
+      date: date !== undefined ? date : event.date,
+      time: time !== undefined ? time : event.time,
+      type: type !== undefined ? type : event.type,
+    },
+  })
+
+  return NextResponse.json({ event: updatedEvent })
+}
+

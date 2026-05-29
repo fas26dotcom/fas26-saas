@@ -16,7 +16,10 @@ import {
   Smartphone, 
   Eye, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Trash2,
+  Edit3,
+  Copy
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 
@@ -78,6 +81,92 @@ export default function CalendarPage() {
   const [activePreviewTab, setActivePreviewTab] = useState<"edit" | "preview">("edit")
   const [brandVoices, setBrandVoices] = useState<any[]>([])
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>("")
+
+  // Edit Event State
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editDate, setEditDate] = useState("")
+  const [editTime, setEditTime] = useState("")
+  const [editType, setEditType] = useState<Event["type"]>("meeting")
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  // Copy and Expansion State
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({})
+
+  const handleCopyText = (text: string, id: string) => {
+    const cleanText = text.replace(/^\[.*?\]\s*/, "")
+    navigator.clipboard.writeText(cleanText)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const toggleExpandEvent = (id: string) => {
+    setExpandedEvents(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Are you sure you want to delete this scheduled post/event?")) return
+    if (eventId.startsWith("demo-")) {
+      setEvents(events.filter(e => e.id !== eventId))
+      return
+    }
+    try {
+      const res = await fetch(`/api/events?id=${eventId}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        fetchEvents()
+      } else {
+        alert("Failed to delete event.")
+      }
+    } catch (err) {
+      console.error("Error deleting event:", err)
+    }
+  }
+
+  const handleStartEdit = (event: Event) => {
+    setEditingEvent(event)
+    setEditTitle(event.title)
+    setEditDate(event.date)
+    setEditTime(event.time)
+    setEditType(event.type)
+    setShowEditModal(true)
+  }
+
+  const handleUpdateEvent = async () => {
+    if (!editingEvent || !editTitle.trim()) return
+    if (editingEvent.id.startsWith("demo-")) {
+      setEvents(events.map(e => e.id === editingEvent.id ? { ...e, title: editTitle, date: editDate, time: editTime, type: editType } : e))
+      setShowEditModal(false)
+      setEditingEvent(null)
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/events?id=${editingEvent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle,
+          date: editDate,
+          time: editTime,
+          type: editType,
+        }),
+      })
+      if (res.ok) {
+        fetchEvents()
+        setShowEditModal(false)
+        setEditingEvent(null)
+      } else {
+        alert("Failed to update event.")
+      }
+    } catch (err) {
+      console.error("Error updating event:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Load session, events & brand voices on mount
   useEffect(() => {
@@ -401,22 +490,71 @@ Make it engaging, well-formatted with paragraph breaks, and include 3 relevant h
                   </Button>
                 </div>
               ) : (
-                selectedDateEvents.map((event) => (
-                  <div key={event.id} className={`border rounded-2xl p-4 space-y-3 shadow-sm ${getEventTypeStyle(event.type)}`}>
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex items-center gap-2">
-                        {getPlatformIcon(event.type)}
-                        <h4 className="font-bold text-xs uppercase tracking-wider">{event.type} Campaign</h4>
+                selectedDateEvents.map((event) => {
+                  const cleanText = event.title.replace(/^\[.*?\]\s*/, "")
+                  const isExpanded = expandedEvents[event.id]
+                  
+                  return (
+                    <div key={event.id} className={`border rounded-2xl p-4 space-y-3 shadow-sm ${getEventTypeStyle(event.type)}`}>
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-center gap-2">
+                          {getPlatformIcon(event.type)}
+                          <h4 className="font-bold text-xs uppercase tracking-wider">{event.type} Campaign</h4>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-900/60 px-2 py-0.5 rounded-full">
+                            {event.time}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => handleCopyText(event.title, event.id)}
+                              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors text-slate-700 dark:text-slate-200"
+                              title="Copy Full Post"
+                            >
+                              {copiedId === event.id ? (
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleStartEdit(event)}
+                              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors text-slate-700 dark:text-slate-200"
+                              title="Edit Event"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="p-1 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 rounded transition-colors text-rose-600 dark:text-rose-400"
+                              title="Delete Event"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-900/60 px-2 py-0.5 rounded-full">
-                        {event.time}
-                      </span>
+                      
+                      <div className="relative">
+                        <p 
+                          className={`text-xs text-slate-700 dark:text-slate-250 leading-relaxed whitespace-pre-wrap ${
+                            isExpanded ? "" : "line-clamp-3"
+                          }`}
+                        >
+                          {cleanText}
+                        </p>
+                        {cleanText.length > 120 && (
+                          <button
+                            onClick={() => toggleExpandEvent(event.id)}
+                            className="text-[10px] font-bold text-indigo-500 hover:text-indigo-750 mt-1.5 block focus:outline-none"
+                          >
+                            {isExpanded ? "Show Less" : "Read Full Post"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-700 dark:text-slate-250 line-clamp-3 leading-relaxed whitespace-pre-wrap">
-                      {event.title.replace(/^\[.*?\]\s*/, "")}
-                    </p>
-                  </div>
-                ))
+                  )
+                })
               )}
             </CardContent>
           </Card>
@@ -721,6 +859,75 @@ Make it engaging, well-formatted with paragraph breaks, and include 3 relevant h
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Edit Scheduled Post / Event</h3>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-title">Content / Title</Label>
+                <textarea
+                  id="edit-title"
+                  rows={4}
+                  placeholder="e.g. Sync review meeting"
+                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-250"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-date">Date</Label>
+                  <input
+                    id="edit-date"
+                    type="date"
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-250"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-time">Time</Label>
+                  <input
+                    id="edit-time"
+                    type="text"
+                    placeholder="e.g. 10:00 AM"
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-250"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-type">Category / Platform</Label>
+                <select
+                  id="edit-type"
+                  className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-250"
+                  value={editType}
+                  onChange={(e: any) => setEditType(e.target.value)}
+                >
+                  <option value="meeting">Meeting</option>
+                  <option value="focus">Focus Session</option>
+                  <option value="deadline">Project Deadline</option>
+                  <option value="reminder">Reminder</option>
+                  <option value="linkedin">LinkedIn Update</option>
+                  <option value="twitter">X / Twitter Post</option>
+                  <option value="instagram">Instagram Caption</option>
+                  <option value="blog">Blog Outline</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => { setShowEditModal(false); setEditingEvent(null); }}>Cancel</Button>
+                <Button onClick={handleUpdateEvent} disabled={saving} className="bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl">
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
