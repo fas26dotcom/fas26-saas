@@ -44,9 +44,10 @@ export async function POST(request: NextRequest) {
   })
 
   // Send email notification (non-blocking)
+  const subjectTitle = title.split("\n")[0].substring(0, 50) + (title.length > 50 ? "..." : "")
   sendEmailNotification({
     to: user.email,
-    subject: `📅 New Event Scheduled: ${title}`,
+    subject: `📅 New Event Scheduled: ${subjectTitle}`,
     html: `
       <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #4f46e5;">New Calendar Event</h2>
