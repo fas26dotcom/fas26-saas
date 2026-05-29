@@ -287,7 +287,7 @@ Make it engaging, well-formatted with paragraph breaks, and include 3 relevant h
     setSaving(true)
 
     const titlePrefix = `[${aiPlatform.toUpperCase()}] `
-    const fullTitle = titlePrefix + (generatedText.length > 200 ? generatedText.substring(0, 197) + "..." : generatedText)
+    const fullTitle = titlePrefix + generatedText
 
     try {
       const res = await fetch("/api/events", {

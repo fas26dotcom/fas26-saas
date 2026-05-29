@@ -18,6 +18,8 @@ export async function sendEmailNotification({
     return { success: false, reason: "no_api_key" }
   }
 
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "FAS26 SaaS <onboarding@resend.dev>"
+
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -26,7 +28,7 @@ export async function sendEmailNotification({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "FAS26 SaaS <onboarding@resend.dev>",
+        from: fromEmail,
         to: [to],
         subject,
         html,
