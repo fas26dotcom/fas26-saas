@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
         role: true,
         plan: true,
         createdAt: true,
+        imageGeneratedCount: true,
         videoGeneratedCount: true,
         audioGeneratedCount: true,
       }

@@ -295,24 +295,47 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Free Trial Limits explanation */}
-                {!isAdmin && userPlan === "TRIAL" ? (
+                {!isAdmin && userPlan === "TRIAL" && (
                   <div className="text-xs text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-xl space-y-2">
                     <p className="font-semibold text-slate-700 dark:text-slate-350">💡 Free Trial Limits:</p>
                     <ul className="list-disc pl-4 space-y-1">
                       <li>5,000 tokens generation limit.</li>
                       <li>Basic content generation templates.</li>
-                      <li>5 AI Images per day.</li>
-                      <li className="text-rose-500 font-medium">❌ Video & Audio Generation is restricted to 1 test generation.</li>
+                      <li>1 AI Image limit after signup.</li>
+                      <li className="text-rose-500 font-medium">❌ Image, Video & Audio Generation is restricted to 1 test generation.</li>
                     </ul>
                   </div>
-                ) : (
+                )}
+                {!isAdmin && userPlan === "STARTER" && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-xl space-y-2">
+                    <p className="font-semibold text-slate-700 dark:text-slate-350">💡 Starter Plan Limits:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>50,000 tokens / month limit.</li>
+                      <li>50 AI Images / month limit.</li>
+                      <li>5 Premium AI Videos / month limit.</li>
+                      <li>7 AI Audio tracks / month limit.</li>
+                    </ul>
+                  </div>
+                )}
+                {!isAdmin && userPlan === "PRO" && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-xl space-y-2">
+                    <p className="font-semibold text-slate-700 dark:text-slate-350">💡 Pro Plan Limits:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>250,000 tokens / month limit.</li>
+                      <li>125 AI Images / month limit.</li>
+                      <li>15 Premium AI Videos / month limit.</li>
+                      <li>25 AI Audio tracks / month limit.</li>
+                    </ul>
+                  </div>
+                )}
+                {!isAdmin && userPlan !== "TRIAL" && userPlan !== "STARTER" && userPlan !== "PRO" && (
                   <div className="text-xs text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-xl space-y-2">
                     <p className="font-semibold text-emerald-600 dark:text-emerald-450">✓ Premium features unlocked:</p>
                     <ul className="list-disc pl-4 space-y-1">
                       <li>Unlimited text & content generation.</li>
                       <li>Priority high-fidelity image generations.</li>
                       <li>Full HD video generation via Replicate (Wan Video).</li>
-                      <li>High quality audio and voice synthesis synthesis.</li>
+                      <li>High quality audio and voice synthesis.</li>
                     </ul>
                   </div>
                 )}

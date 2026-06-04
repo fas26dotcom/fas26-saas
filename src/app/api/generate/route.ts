@@ -27,33 +27,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Prompt is required" }, { status: 400 })
     }
 
-    // Enforce 7-Day Trial Restrictions on Video/Audio (Allow 1 of each for testing)
+    // Enforce Plan Limits on Generations
     const sessionCookie = request.cookies.get("session")?.value
-    let isTrial = true
     let userId: string | null = null
+    let user = null
     
     if (sessionCookie) {
       const payload = verifyToken(sessionCookie)
       if (payload) {
         userId = payload.id
-        const user = await prisma.user.findUnique({
+        user = await prisma.user.findUnique({
           where: { id: payload.id }
         })
-        if (user) {
-          if (user.role === "ADMIN" || user.plan !== "TRIAL") {
-            isTrial = false
-          } else {
-            // Check limits for trial users (1 video, 1 audio)
-            if (type === "video" && user.videoGeneratedCount >= 1) {
+        
+        if (user && user.role !== "ADMIN") {
+          const plan = user.plan || "TRIAL"
+          let imgLimit = 1
+          let videoLimit = 1
+          let audioLimit = 1
+          let planName = "Free Trial"
+          
+          if (plan === "STARTER") {
+            imgLimit = 50
+            videoLimit = 5
+            audioLimit = 7
+            planName = "Starter Plan"
+          } else if (plan === "PRO") {
+            imgLimit = 125
+            videoLimit = 15
+            audioLimit = 25
+            planName = "Pro Plan"
+          }
+
+          if (plan === "TRIAL" || plan === "STARTER" || plan === "PRO") {
+            if (type === "image" && user.imageGeneratedCount >= imgLimit) {
               return NextResponse.json({ 
                 success: false, 
-                error: "You have used your 1 free video generation limit on the Free Trial. Please upgrade to Starter or Pro plan to unlock unlimited videos." 
+                error: `You have reached your limit of ${imgLimit} image generations for the ${planName}. Please upgrade your plan to unlock more.` 
               }, { status: 403 })
             }
-            if (type === "audio" && user.audioGeneratedCount >= 1) {
+            if (type === "video" && user.videoGeneratedCount >= videoLimit) {
               return NextResponse.json({ 
                 success: false, 
-                error: "You have used your 1 free audio generation limit on the Free Trial. Please upgrade to Starter or Pro plan to unlock unlimited audios." 
+                error: `You have reached your limit of ${videoLimit} video generations for the ${planName}. Please upgrade your plan to unlock more.` 
+              }, { status: 403 })
+            }
+            if (type === "audio" && user.audioGeneratedCount >= audioLimit) {
+              return NextResponse.json({ 
+                success: false, 
+                error: `You have reached your limit of ${audioLimit} audio generations for the ${planName}. Please upgrade your plan to unlock more.` 
               }, { status: 403 })
             }
           }
@@ -166,6 +188,12 @@ To activate real AI generation:
             const data = await response.json()
             const imageUrl = data.data?.[0]?.url
             if (imageUrl) {
+              if (userId && (!user || user.role !== "ADMIN")) {
+                await prisma.user.update({
+                  where: { id: userId },
+                  data: { imageGeneratedCount: { increment: 1 } }
+                })
+              }
               return NextResponse.json({ success: true, result: imageUrl, provider: "OpenAI DALL-E" })
             }
           }
@@ -177,6 +205,12 @@ To activate real AI generation:
       // Return our OWN custom image proxy URL to protect branding and solve loading issues
       const proxyUrl = `/api/image-render?prompt=${encodeURIComponent(prompt)}&seed=${Math.floor(Math.random() * 1000000)}`
       
+      if (userId && (!user || user.role !== "ADMIN")) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { imageGeneratedCount: { increment: 1 } }
+        })
+      }
       return NextResponse.json({
         success: true,
         result: proxyUrl,
@@ -236,7 +270,7 @@ To activate real AI generation:
                   const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output
                   if (videoUrl) {
                     console.log("[Replicate Debug] Generation successful! URL:", videoUrl)
-                    if (isTrial && userId) {
+                    if (userId && (!user || user.role !== "ADMIN")) {
                       await prisma.user.update({
                         where: { id: userId },
                         data: { videoGeneratedCount: { increment: 1 } }
@@ -283,7 +317,7 @@ To activate real AI generation:
         selectedVideo = videoUrls.nature
       }
 
-      if (isTrial && userId) {
+      if (userId && (!user || user.role !== "ADMIN")) {
         await prisma.user.update({
           where: { id: userId },
           data: { videoGeneratedCount: { increment: 1 } }
@@ -299,7 +333,7 @@ To activate real AI generation:
 
     if (type === "audio") {
       const proxyAudioUrl = `/api/audio-render?prompt=${encodeURIComponent(prompt)}`
-      if (isTrial && userId) {
+      if (userId && (!user || user.role !== "ADMIN")) {
         await prisma.user.update({
           where: { id: userId },
           data: { audioGeneratedCount: { increment: 1 } }

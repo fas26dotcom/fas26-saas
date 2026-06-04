@@ -15,9 +15,9 @@ const plans = [
     features: [
       "5,000 tokens limit", 
       "Basic templates", 
-      "5 AI Images / day", 
-      "🎥 1 Video generation included",
-      "🎵 1 Audio generation included",
+      "1 AI Image limit after signup", 
+      "🎥 1 Video generation after signup",
+      "🎵 1 Audio generation after signup",
       "Community support"
     ],
     featured: false,
@@ -32,9 +32,9 @@ const plans = [
     features: [
       "50,000 tokens / month", 
       "All templates included", 
-      "100 AI Images / month", 
-      "🎥 10 Premium AI Videos / month", 
-      "🎵 15 AI Audio tracks / month",
+      "50 AI Images / month", 
+      "🎥 5 Premium AI Videos / month", 
+      "🎵 7 AI Audio tracks / month",
       "Email support"
     ],
     featured: false,
@@ -49,9 +49,9 @@ const plans = [
     features: [
       "250,000 tokens / month", 
       "Brand voice & SEO tools", 
-      "🖼️ 250 AI Images / month", 
-      "🎥 30 Premium AI Videos / month", 
-      "🎵 50 AI Audio tracks / month",
+      "🖼️ 125 AI Images / month", 
+      "🎥 15 Premium AI Videos / month", 
+      "🎵 25 AI Audio tracks / month",
       "24/7 Priority support"
     ],
     featured: true,

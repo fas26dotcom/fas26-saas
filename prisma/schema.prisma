@@ -14,6 +14,7 @@ model User {
   password      String
   role          Role        @default(USER)
   plan          String      @default("TRIAL")
+  imageGeneratedCount Int      @default(0)
   videoGeneratedCount Int      @default(0)
   audioGeneratedCount Int      @default(0)
   workspaces    Workspace[] @relation("WorkspaceMembers")
