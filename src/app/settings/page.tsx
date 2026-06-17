@@ -209,49 +209,51 @@ export default function SettingsPage() {
                   </div>
 
                   {/* ADMIN TOGGLE SECTION FOR UNLIMITED ACCESS */}
-                  <div className="p-4 bg-indigo-50/30 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label htmlFor="admin-role" className="font-bold flex items-center gap-1.5 text-indigo-650 dark:text-indigo-400">
-                          <Crown className="h-4 w-4 text-indigo-500 animate-pulse" /> Developer Admin Access
-                        </Label>
-                        <p className="text-xs text-slate-500 dark:text-slate-450">
-                          Activate Admin Mode to get unlimited video, audio, text, and image generations.
-                        </p>
+                  {userRole === "ADMIN" && (
+                    <div className="p-4 bg-indigo-50/30 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="admin-role" className="font-bold flex items-center gap-1.5 text-indigo-650 dark:text-indigo-400">
+                            <Crown className="h-4 w-4 text-indigo-500 animate-pulse" /> Developer Admin Access
+                          </Label>
+                          <p className="text-xs text-slate-500 dark:text-slate-450">
+                            Activate Admin Mode to get unlimited video, audio, text, and image generations.
+                          </p>
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          id="admin-role"
+                          className="w-10 h-5 accent-indigo-600 rounded-full cursor-pointer"
+                          checked={userRole === "ADMIN"}
+                          onChange={(e) => {
+                            const newRole = e.target.checked ? "ADMIN" : "USER"
+                            setUserRole(newRole)
+                            // Auto set plan to UNLIMITED if admin is turned on
+                            if (newRole === "ADMIN") {
+                              setUserPlan("UNLIMITED")
+                            } else {
+                              setUserPlan("TRIAL")
+                            }
+                          }}
+                        />
                       </div>
-                      <input 
-                        type="checkbox" 
-                        id="admin-role"
-                        className="w-10 h-5 accent-indigo-600 rounded-full cursor-pointer"
-                        checked={userRole === "ADMIN"}
-                        onChange={(e) => {
-                          const newRole = e.target.checked ? "ADMIN" : "USER"
-                          setUserRole(newRole)
-                          // Auto set plan to UNLIMITED if admin is turned on
-                          if (newRole === "ADMIN") {
-                            setUserPlan("UNLIMITED")
-                          } else {
-                            setUserPlan("TRIAL")
-                          }
-                        }}
-                      />
-                    </div>
 
-                    <div className="space-y-1.5 pt-2 border-t border-indigo-100/30 dark:border-indigo-900/30">
-                      <Label htmlFor="plan-select" className="text-xs font-semibold text-slate-700 dark:text-slate-350">Simulated Plan Level</Label>
-                      <select 
-                        id="plan-select" 
-                        value={userPlan} 
-                        onChange={(e) => setUserPlan(e.target.value)}
-                        className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      >
-                        <option value="TRIAL">7-Day Free Trial</option>
-                        <option value="STARTER">Starter Plan ($19/mo)</option>
-                        <option value="PRO">Pro Plan ($49/mo)</option>
-                        <option value="UNLIMITED">Admin / Unlimited Plan (Developer Preset)</option>
-                      </select>
+                      <div className="space-y-1.5 pt-2 border-t border-indigo-100/30 dark:border-indigo-900/30">
+                        <Label htmlFor="plan-select" className="text-xs font-semibold text-slate-700 dark:text-slate-350">Simulated Plan Level</Label>
+                        <select 
+                          id="plan-select" 
+                          value={userPlan} 
+                          onChange={(e) => setUserPlan(e.target.value)}
+                          className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="TRIAL">7-Day Free Trial</option>
+                          <option value="STARTER">Starter Plan ($19/mo)</option>
+                          <option value="PRO">Pro Plan ($49/mo)</option>
+                          <option value="UNLIMITED">Admin / Unlimited Plan (Developer Preset)</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <Button type="submit" disabled={isLoading} className="glow-btn bg-indigo-600 hover:bg-indigo-750 text-white w-full md:w-auto">
                     {isLoading ? "Saving changes..." : "Save Changes"}

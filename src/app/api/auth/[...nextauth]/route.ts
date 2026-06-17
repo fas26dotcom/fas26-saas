@@ -101,6 +101,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid email or password" }, { status: 401 })
     }
 
+    // Check if user is verified
+    if (!user.isVerified) {
+      return NextResponse.json({ success: false, error: "Please verify your email address before signing in. Check your inbox for the verification link." }, { status: 403 })
+    }
+
     // 3. Generate signed session token
     const token = signToken({
       id: user.id,

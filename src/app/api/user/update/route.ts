@@ -31,12 +31,17 @@ export async function POST(request: NextRequest) {
       updateData.name = name
     }
 
-    // Role / Plan updates (If requested role is ADMIN or plan change - allow since user is admin or they are trying to activate admin)
-    // To make it easy for the developer/user to toggle admin/unlimited, we allow updates to role/plan.
+    // Role / Plan updates (Only allow existing admins to toggle role or plan)
     if (role !== undefined) {
+      if (dbUser.role !== "ADMIN") {
+        return NextResponse.json({ success: false, error: "Unauthorized: Only administrators can modify roles" }, { status: 403 })
+      }
       updateData.role = role
     }
     if (plan !== undefined) {
+      if (dbUser.role !== "ADMIN") {
+        return NextResponse.json({ success: false, error: "Unauthorized: Only administrators can modify plans directly" }, { status: 403 })
+      }
       updateData.plan = plan
     }
 
