@@ -15,6 +15,7 @@ import {
   Search,
   FileText,
   Calendar,
+  CalendarRange,
   Menu,
   X,
   Sparkles,
@@ -26,6 +27,7 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/content", label: "AI Content", icon: PenTool },
+  { href: "/planner", label: "AI Planner", icon: CalendarRange },
   { href: "/brand-voice", label: "Brand Voice", icon: Palette },
   { href: "/seo", label: "SEO Tools", icon: Search },
   { href: "/workspace", label: "Workspace", icon: FolderKanban },

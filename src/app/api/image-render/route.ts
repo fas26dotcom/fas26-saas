@@ -8,33 +8,12 @@ export async function GET(request: NextRequest) {
     const prompt = searchParams.get("prompt") || "finance"
     const seed = searchParams.get("seed") || "42"
 
-    const replicateToken = process.env.REPLICATE_API_TOKEN
-    const externalUrl = "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions"
+    // Use Pollinations AI for high-quality, free image generation
+    const pollinationsUrl = `https://image.pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true&private=true`
 
-    const response = await fetch(externalUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${replicateToken}`,
-        "Content-Type": "application/json",
-        "Prefer": "wait"
-      },
-      body: JSON.stringify({ input: { prompt: prompt, aspect_ratio: "3:2" } }),
-    })
-    
-    if (!response.ok) {
-      return NextResponse.json({ error: `Failed to generate image: ${response.status} ${response.statusText}` }, { status: response.status })
-    }
-
-    const data = await response.json()
-    const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output
-
-    if (!imageUrl) {
-      return NextResponse.json({ error: `Image generation failed or returned no output.` }, { status: 500 })
-    }
-
-    const imageResponse = await fetch(imageUrl)
+    const imageResponse = await fetch(pollinationsUrl)
     if (!imageResponse.ok) {
-      return NextResponse.json({ error: `Failed to download generated image.` }, { status: 500 })
+      return NextResponse.json({ error: `Failed to generate image from source.` }, { status: 500 })
     }
 
     const arrayBuffer = await imageResponse.arrayBuffer()

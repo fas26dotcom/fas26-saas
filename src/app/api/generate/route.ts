@@ -169,40 +169,7 @@ To activate real AI generation:
 
     // --- IMAGE GENERATION WORKFLOW ---
     if (type === "image") {
-      if (openAiKey) {
-        try {
-          const response = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${openAiKey}`,
-            },
-            body: JSON.stringify({
-              prompt: prompt,
-              n: 1,
-              size: "512x512",
-            }),
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            const imageUrl = data.data?.[0]?.url
-            if (imageUrl) {
-              if (userId && (!user || user.role !== "ADMIN")) {
-                await prisma.user.update({
-                  where: { id: userId },
-                  data: { imageGeneratedCount: { increment: 1 } }
-                })
-              }
-              return NextResponse.json({ success: true, result: imageUrl, provider: "OpenAI DALL-E" })
-            }
-          }
-        } catch (error) {
-          console.error("Failed to generate image via DALL-E:", error)
-        }
-      }
-
-      // Return our OWN custom image proxy URL to protect branding and solve loading issues
+      // Return our OWN custom image proxy URL (backed by Pollinations AI) to ensure 100% free generations
       const proxyUrl = `/api/image-render?prompt=${encodeURIComponent(prompt)}&seed=${Math.floor(Math.random() * 1000000)}`
       
       if (userId && (!user || user.role !== "ADMIN")) {
