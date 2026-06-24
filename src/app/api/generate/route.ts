@@ -197,7 +197,7 @@ To activate real AI generation:
       }
 
       let selectedVideo = videoUrls.office
-      if (promptLower.includes("rain") || promptLower.includes("water") || promptLower.includes("nature") || promptLower.includes("weather") || promptLower.includes("girl") || promptLower.includes("outdoor") || promptLower.includes("snow") || promptLower.includes("mountain") || promptLower.includes("industrial") || promptLower.includes("scrap")) {
+      if (promptLower.includes("rain") || promptLower.includes("water") || promptLower.includes("nature") || promptLower.includes("weather") || promptLower.includes("snow") || promptLower.includes("mountain") || promptLower.includes("storm") || promptLower.includes("monsoon") || promptLower.includes("river") || promptLower.includes("lake")) {
         selectedVideo = videoUrls.rain
       }
 
