@@ -188,31 +188,10 @@ To activate real AI generation:
 
     // --- VIDEO & AUDIO FLOWS ---
     if (type === "video") {
-      const promptLower = prompt.toLowerCase()
-      
-      // Use local, high-speed video loops stored in public/ to guarantee 100% free uptime and avoid CORS/Range issues.
-      const videoUrls = {
-        office: "/officeparty.mp4",
-        rain: "/littlegirlinrain.mp4",
-      }
-
-      let selectedVideo = videoUrls.office
-      if (promptLower.includes("rain") || promptLower.includes("water") || promptLower.includes("nature") || promptLower.includes("weather") || promptLower.includes("snow") || promptLower.includes("mountain") || promptLower.includes("storm") || promptLower.includes("monsoon") || promptLower.includes("river") || promptLower.includes("lake") || promptLower.includes("jungle") || promptLower.includes("tiger") || promptLower.includes("forest") || promptLower.includes("tree") || promptLower.includes("animal") || promptLower.includes("wildlife")) {
-        selectedVideo = videoUrls.rain
-      }
-
-      if (userId && (!user || user.role !== "ADMIN")) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { videoGeneratedCount: { increment: 1 } }
-        })
-      }
-      return NextResponse.json({
-        success: true,
-        result: selectedVideo,
-        provider: "FAS26 Proprietary Video AI",
-        isMock: false
-      })
+      return NextResponse.json({ 
+        success: false, 
+        error: "Video generation is disabled to comply with API subscription limits." 
+      }, { status: 403 })
     }
 
     if (type === "audio") {

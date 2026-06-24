@@ -74,10 +74,9 @@ export default function ContentPage() {
       <p className="text-gray-600 dark:text-gray-400 mb-6">Generate text, images, videos, and audio from a single interface</p>
 
       <Tabs defaultValue="text" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="text">Text</TabsTrigger>
           <TabsTrigger value="image">Image</TabsTrigger>
-          <TabsTrigger value="video">Video</TabsTrigger>
           <TabsTrigger value="audio">Audio</TabsTrigger>
         </TabsList>
 
@@ -159,27 +158,6 @@ export default function ContentPage() {
               </div>
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400">Generated image will appear here</p>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="video" className="w-full">
-          <div className="border rounded-xl p-6 min-h-64 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-slate-200/55 dark:border-slate-800/45 flex items-center justify-center">
-            {generatedVideo ? (
-              <div className="flex flex-col items-center gap-4 w-full">
-                <video 
-                  key={generatedVideo}
-                  controls 
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  src={generatedVideo} 
-                  className="max-w-full max-h-[350px] rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-800/60"
-                />
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">Generated video will appear here</p>
             )}
           </div>
         </TabsContent>
