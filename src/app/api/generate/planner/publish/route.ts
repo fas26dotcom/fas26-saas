@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Post successfully published to LinkedIn (Simulated Dev Mode)!",
         postUrn: mockPostUrn,
-        link: `https://www.linkedin.com/feed/update/${mockPostUrn}`
+        link: "https://www.linkedin.com/feed/"
       })
     }
 
