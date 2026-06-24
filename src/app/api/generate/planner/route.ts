@@ -18,17 +18,12 @@ export async function POST(request: NextRequest) {
     }
 
     const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Gemini API key is not configured. Please add GEMINI_API_KEY to your .env.local file." 
-      }, { status: 500 })
-    }
+    const openAiKey = process.env.OPENAI_API_KEY
 
     const start = startDate ? new Date(startDate) : new Date()
     const planDuration = duration ? parseInt(duration) : 10
 
-    // Prompt Gemini for structured JSON output
+    // Prompt for structured JSON output
     const prompt = `
 Generate a comprehensive ${planDuration}-day social media campaign and content schedule.
 Topic/Theme: "${topic}"
@@ -59,47 +54,138 @@ JSON Format Schema:
 ]
 `
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        }),
+    let plannerItems: any[] | null = null
+    let providerUsed = "None"
+
+    // 1. Try Gemini
+    if (geminiKey) {
+      try {
+        console.log("Attempting plan generation with Google Gemini...")
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            }),
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+          if (textContent) {
+            let cleanedJson = textContent.trim()
+            if (cleanedJson.startsWith("```")) {
+              cleanedJson = cleanedJson.replace(/^```json\s*/i, "").replace(/```$/, "").trim()
+            }
+            const parsed = JSON.parse(cleanedJson)
+            if (Array.isArray(parsed)) {
+              plannerItems = parsed
+              providerUsed = "Google Gemini"
+            }
+          }
+        } else {
+          console.error("Gemini batch planner API returned error:", await response.text())
+        }
+      } catch (geminiErr: any) {
+        console.error("Gemini batch planner exception:", geminiErr.message)
       }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Gemini batch planner API returned error:", errorText)
-      return NextResponse.json({ success: false, error: "Failed to generate plan from AI provider." }, { status: 500 })
     }
 
-    const data = await response.json()
-    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+    // 2. Try OpenAI Fallback
+    if (!plannerItems && openAiKey) {
+      try {
+        console.log("Attempting plan generation with OpenAI...")
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openAiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
+          }),
+        })
 
-    if (!textContent) {
-      return NextResponse.json({ success: false, error: "AI provider returned empty response." }, { status: 500 })
+        if (response.ok) {
+          const data = await response.json()
+          const textContent = data.choices?.[0]?.message?.content
+          if (textContent) {
+            let cleanedJson = textContent.trim()
+            if (cleanedJson.startsWith("```")) {
+              cleanedJson = cleanedJson.replace(/^```json\s*/i, "").replace(/```$/, "").trim()
+            }
+            const parsed = JSON.parse(cleanedJson)
+            if (Array.isArray(parsed)) {
+              plannerItems = parsed
+              providerUsed = "OpenAI"
+            }
+          }
+        } else {
+          console.error("OpenAI planner API returned error:", await response.text())
+        }
+      } catch (openAiErr: any) {
+        console.error("OpenAI planner exception:", openAiErr.message)
+      }
     }
 
-    // Clean markdown code blocks if any
-    let cleanedJson = textContent.trim()
-    if (cleanedJson.startsWith("```")) {
-      cleanedJson = cleanedJson.replace(/^```json\s*/i, "").replace(/```$/, "").trim()
-    }
+    // 3. Fallback to Mock Sandbox Planner
+    if (!plannerItems) {
+      console.log("Both AI engines failed or keys are missing. Generating Sandbox Mock Plan...")
+      const mockThemes = [
+        "Introduction to the campaign theme and key objectives.",
+        "Crucial benefits of our approach and why it matters.",
+        "Step-by-step tutorial or quick action items.",
+        "Interactive question or poll to engage the audience.",
+        "An inspiring quote or industry statistic.",
+        "Common mistakes to avoid and how to fix them.",
+        "Case study or success story highlighting results.",
+        "Tools and resources we recommend for this journey.",
+        "Quick tips and hacks for immediate implementation.",
+        "Debunking popular myths or misconceptions.",
+        "Q&A session or answering frequently asked questions.",
+        "Behind-the-scenes look or personal story.",
+        "A deep dive into advanced techniques.",
+        "Summary of key takeaways and next steps.",
+        "Call to action: How to get started today."
+      ]
 
-    const plannerItems = JSON.parse(cleanedJson)
+      plannerItems = []
+      providerUsed = "FAS26 Sandbox Planner"
 
-    if (!Array.isArray(plannerItems)) {
-      return NextResponse.json({ success: false, error: "AI did not return a valid array." }, { status: 500 })
+      for (let i = 1; i <= planDuration; i++) {
+        const currentDate = new Date(start)
+        currentDate.setDate(start.getDate() + i - 1)
+        const dateStr = currentDate.toISOString().split("T")[0]
+        
+        const themeIndex = (i - 1) % mockThemes.length
+        const theme = mockThemes[themeIndex]
+        
+        plannerItems.push({
+          day: i,
+          date: dateStr,
+          time: "10:00 AM",
+          title: `Day ${i}: Guide to ${topic}`,
+          postContent: `🚀 Day ${i} of our campaign on "${topic}"! 
+
+Today we're focusing on: ${theme}
+
+Targeting our amazing audience of ${audience || "general practitioners"}. What are your thoughts on this? Let us know in the comments below! 👇
+
+#${platform} #${topic.replace(/\s+/g, "")} #SaaS #Growth`,
+          imagePrompt: `A professional 3D vector illustration showing a concept related to: ${theme}. Minimalist, sleek design, blue and purple gradient background, high resolution.`
+        })
+      }
     }
 
     // Save events to database in bulk
     const eventRecords = plannerItems.map((item: any) => {
-      // Clean and structure the title to hold both title, content, and prompt
       const fullTitle = `[${platform.toUpperCase()}] ${item.title}\n\n${item.postContent}\n\n[AI Image Prompt]: ${item.imagePrompt}`
       return {
         title: fullTitle,
@@ -116,8 +202,9 @@ JSON Format Schema:
 
     return NextResponse.json({
       success: true,
-      message: "30-day planner generated and scheduled successfully!",
-      plan: plannerItems
+      message: `Campaign generated successfully using ${providerUsed}!`,
+      plan: plannerItems,
+      provider: providerUsed
     })
 
   } catch (error: any) {
