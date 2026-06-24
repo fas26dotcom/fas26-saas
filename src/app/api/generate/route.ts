@@ -188,101 +188,8 @@ To activate real AI generation:
 
     // --- VIDEO & AUDIO FLOWS ---
     if (type === "video") {
-      const replicateToken = process.env.REPLICATE_API_TOKEN
-      console.log("[Replicate Debug] Token detected:", !!replicateToken)
-
-      if (replicateToken) {
-        try {
-          console.log("[Replicate Debug] Initializing prediction for prompt:", prompt)
-          // 1. Initialize prediction request to Replicate Wan 2.1 (Ultra-Realistic Text-to-Video 14B)
-          const predictionResponse = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${replicateToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              version: "7677a619127ea34d1ed873fb5b77448e4b9889fbd83809b44a2c459ace99192a",
-              input: {
-                prompt: prompt,
-                aspect_ratio: "16:9",
-                sample_steps: 30,
-                sample_guide_scale: 5,
-                fast_mode: "Balanced"
-              },
-            }),
-          })
- 
-          if (predictionResponse.ok) {
-            let prediction = await predictionResponse.json()
-            const getUrl = prediction.urls.get
- 
-            // 2. Poll prediction status until succeeded (max 90 attempts, ~180 seconds)
-            let attempts = 0
-            const maxAttempts = 90
-            while (attempts < maxAttempts) {
-              await new Promise((resolve) => setTimeout(resolve, 2000))
-              
-              const pollResponse = await fetch(getUrl, {
-                headers: {
-                  "Authorization": `Bearer ${replicateToken}`,
-                },
-              })
-
-              if (pollResponse.ok) {
-                prediction = await pollResponse.json()
-                console.log(`[Replicate Debug] Poll ${attempts} status: ${prediction.status}`)
-                if (prediction.status === "succeeded") {
-                  // Zeroscope returns an array containing the video loop URL
-                  const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output
-                  if (videoUrl) {
-                    console.log("[Replicate Debug] Generation successful! URL:", videoUrl)
-                    if (userId && (!user || user.role !== "ADMIN")) {
-                      await prisma.user.update({
-                        where: { id: userId },
-                        data: { videoGeneratedCount: { increment: 1 } }
-                      })
-                    }
-                    return NextResponse.json({
-                      success: true,
-                      result: videoUrl,
-                      provider: "Replicate (Wan Video)",
-                      isMock: false
-                    })
-                  }
-                } else if (prediction.status === "failed" || prediction.status === "canceled") {
-                  console.error("[Replicate Debug] Prediction failed or canceled:", prediction.error)
-                  break
-                }
-              }
-              attempts++
-            }
-          } else {
-            console.error("Replicate failed, status:", predictionResponse.status, await predictionResponse.text())
-          }
-        } catch (error) {
-          console.error("Replicate video prediction error, falling back:", error)
-        }
-      }
-
-      // --- Fallback mock stock loop if Replicate is unconfigured or fails ---
-      const promptLower = prompt.toLowerCase()
-      const videoUrls = {
-        industrial: "https://www.w3schools.com/html/movie.mp4", // Mapped to verified bear loop
-        nature: "https://www.w3schools.com/html/mov_bbb.mp4", // Mapped to verified bunny loop
-        joyride: "https://www.w3schools.com/html/mov_bbb.mp4",
-        fantasy: "https://www.w3schools.com/howto/rain.mp4", // Mapped to verified HD rain loop (200 OK)
-        fun: "https://www.w3schools.com/html/mov_bbb.mp4",
-      }
-
-      let selectedVideo = videoUrls.fun
-      if (promptLower.includes("scrap") || promptLower.includes("metal") || promptLower.includes("plastic") || promptLower.includes("factory") || promptLower.includes("worker")) {
-        selectedVideo = videoUrls.industrial
-      } else if (promptLower.includes("snow") || promptLower.includes("mountain") || promptLower.includes("pretty") || promptLower.includes("girl") || promptLower.includes("fantasy") || promptLower.includes("office") || promptLower.includes("laptop") || promptLower.includes("rain") || promptLower.includes("weather")) {
-        selectedVideo = videoUrls.fantasy
-      } else if (promptLower.includes("travel") || promptLower.includes("escape") || promptLower.includes("nature")) {
-        selectedVideo = videoUrls.nature
-      }
+      // Return the free local video render proxy URL to ensure $0 cost
+      const proxyVideoUrl = `/api/video-render?prompt=${encodeURIComponent(prompt)}`
 
       if (userId && (!user || user.role !== "ADMIN")) {
         await prisma.user.update({
@@ -292,8 +199,8 @@ To activate real AI generation:
       }
       return NextResponse.json({
         success: true,
-        result: selectedVideo,
-        provider: "FAS26 Proprietary Video AI (Sandbox Fallback)",
+        result: proxyVideoUrl,
+        provider: "FAS26 Proprietary Video AI",
         isMock: false
       })
     }
