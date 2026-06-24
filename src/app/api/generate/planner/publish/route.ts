@@ -17,6 +17,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Post content is required" }, { status: 400 })
     }
 
+    // Fetch full user record to verify plan and registration date
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id }
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 })
+    }
+
+    // Enforce 7-day LinkedIn integration limit for Free Trial users
+    if (dbUser.plan === "TRIAL" || !dbUser.plan) {
+      const signupDate = new Date(dbUser.createdAt)
+      const diffTime = Date.now() - signupDate.getTime()
+      const diffDays = diffTime / (1000 * 60 * 60 * 24)
+      if (diffDays > 7) {
+        return NextResponse.json({ 
+          error: "Your 7-day Free Trial of LinkedIn publishing has expired. Please upgrade your plan to unlock unlimited auto-publishing." 
+        }, { status: 403 })
+      }
+    }
+
     // Find user workspace and integration
     const workspace = await prisma.workspace.findFirst({
       where: { ownerId: user.id }
@@ -49,7 +70,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Post successfully published to LinkedIn (Simulated Dev Mode)!",
         postUrn: mockPostUrn,
-        link: `https://www.linkedin.com/feed/`
+        link: `https://www.linkedin.com/feed/update/${mockPostUrn}`
       })
     }
 
@@ -112,7 +133,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Successfully published to your live LinkedIn feed!",
       postUrn,
-      link: `https://www.linkedin.com/feed/`
+      link: `https://www.linkedin.com/feed/update/${postUrn}`
     })
 
   } catch (error: any) {

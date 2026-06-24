@@ -16,8 +16,8 @@ const plans = [
       "5,000 tokens limit", 
       "Basic templates", 
       "1 AI Image limit after signup", 
-      "🎥 1 Video generation after signup",
       "🎵 1 Audio generation after signup",
+      "🔗 LinkedIn Integration (7-day trial limit)",
       "Community support"
     ],
     featured: false,
@@ -33,8 +33,8 @@ const plans = [
       "50,000 tokens / month", 
       "All templates included", 
       "50 AI Images / month", 
-      "🎥 5 Premium AI Videos / month", 
       "🎵 7 AI Audio tracks / month",
+      "🔗 LinkedIn Auto-Publish (No restrictions)",
       "Email support"
     ],
     featured: false,
@@ -50,8 +50,8 @@ const plans = [
       "250,000 tokens / month", 
       "Brand voice & SEO tools", 
       "🖼️ 125 AI Images / month", 
-      "🎥 15 Premium AI Videos / month", 
       "🎵 25 AI Audio tracks / month",
+      "🔗 LinkedIn Auto-Publish (No restrictions)",
       "24/7 Priority support"
     ],
     featured: true,
@@ -65,8 +65,8 @@ const plans = [
     description: "Customized solutions for massive operations.",
     features: [
       "Unlimited tokens / credits", 
-      "Dedicated custom video models", 
       "Unlimited Images & Audio", 
+      "🔗 Full API & LinkedIn Integration (No restrictions)",
       "Dedicated Account Manager",
       "Custom fine-tuning & SLAs"
     ],
