@@ -61,6 +61,8 @@ interface PlanItem {
   isGeneratingImage?: boolean
   isPublishing?: boolean
   publishedLink?: string
+  isScheduling?: boolean
+  isScheduled?: boolean
 }
 
 export default function PlannerPage() {
@@ -155,6 +157,57 @@ export default function PlannerPage() {
       })
     }
   }
+
+  const handleSchedulePost = async (index: number) => {
+    setPlan(prevPlan => {
+      const newPlan = [...prevPlan]
+      newPlan[index] = { ...newPlan[index], isScheduling: true }
+      return newPlan
+    })
+
+    try {
+      const item = plan[index]
+      const response = await fetch("/api/generate/planner/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postContent: item.postContent,
+          imageUrl: item.generatedImageUrl,
+          date: item.date,
+          time: item.time,
+          platform
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || "Failed to schedule post")
+        setPlan(prevPlan => {
+          const newPlan = [...prevPlan]
+          newPlan[index] = { ...newPlan[index], isScheduling: false }
+          return newPlan
+        })
+        return
+      }
+
+      setPlan(prevPlan => {
+        const newPlan = [...prevPlan]
+        newPlan[index] = { 
+          ...newPlan[index], 
+          isScheduling: false, 
+          isScheduled: true
+        }
+        return newPlan
+      })
+    } catch {
+      alert("Failed to connect to scheduling API.")
+      setPlan(prevPlan => {
+        const newPlan = [...prevPlan]
+        newPlan[index] = { ...newPlan[index], isScheduling: false }
+        return newPlan
+      })
+    }
 
   const handleGeneratePlan = async () => {
     setIsGenerating(true)
@@ -530,7 +583,7 @@ export default function PlannerPage() {
                   </div>
 
                   {linkedinConnected && (
-                    <div className="mt-3">
+                    <div className="mt-3 space-y-2">
                       {item.publishedLink ? (
                         <a 
                           href={item.publishedLink}
@@ -540,24 +593,48 @@ export default function PlannerPage() {
                         >
                           <Check className="h-4 w-4" /> View Post on LinkedIn ↗
                         </a>
+                      ) : item.isScheduled ? (
+                        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-2.5 text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1.5">
+                          <Check className="h-4 w-4" /> Scheduled: {item.date} at {item.time}
+                        </div>
                       ) : (
-                        <Button
-                          onClick={() => handlePublishToLinkedIn(idx)}
-                          disabled={item.isPublishing}
-                          className="w-full bg-[#0A66C2] hover:bg-[#004182] text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/10 transition"
-                        >
-                          {item.isPublishing ? (
-                            <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              Publishing...
-                            </>
-                          ) : (
-                            <>
-                              <LinkedinIcon className="h-4 w-4" />
-                              Publish to LinkedIn Now
-                            </>
-                          )}
-                        </Button>
+                        <>
+                          <Button
+                            onClick={() => handlePublishToLinkedIn(idx)}
+                            disabled={item.isPublishing || item.isScheduling}
+                            className="w-full bg-[#0A66C2] hover:bg-[#004182] text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/10 transition"
+                          >
+                            {item.isPublishing ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Publishing...
+                              </>
+                            ) : (
+                              <>
+                                <LinkedinIcon className="h-4 w-4" />
+                                Publish to LinkedIn Now
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => handleSchedulePost(idx)}
+                            disabled={item.isPublishing || item.isScheduling}
+                            variant="outline"
+                            className="w-full border-indigo-500/30 hover:border-indigo-500 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition"
+                          >
+                            {item.isScheduling ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Scheduling...
+                              </>
+                            ) : (
+                              <>
+                                <Calendar className="h-4 w-4" />
+                                Schedule Post ({item.time})
+                              </>
+                            )}
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}

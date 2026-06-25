@@ -59,6 +59,7 @@ model Workspace {
   notes       Note[]   @relation("WorkspaceNotes")
   content     Content[] @relation("WorkspaceContent")
   integrations Integration[] @relation("WorkspaceIntegrations")
+  scheduledPosts ScheduledPost[] @relation("WorkspaceScheduledPosts")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -176,4 +177,20 @@ model Integration {
   workspace   Workspace @relation("WorkspaceIntegrations", fields: [workspaceId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ScheduledPost {
+  id            String    @id @default(cuid())
+  platform      String    @default("linkedin")
+  postContent   String
+  imageUrl      String?
+  scheduledAt   DateTime
+  status        String    @default("SCHEDULED") // "SCHEDULED", "PUBLISHED", "FAILED"
+  error         String?
+  publishedLink String?
+  workspaceId   String
+  workspace     Workspace @relation("WorkspaceScheduledPosts", fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
