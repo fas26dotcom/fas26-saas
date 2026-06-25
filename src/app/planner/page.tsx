@@ -208,6 +208,7 @@ export default function PlannerPage() {
         return newPlan
       })
     }
+  }
 
   const handleGeneratePlan = async () => {
     setIsGenerating(true)
