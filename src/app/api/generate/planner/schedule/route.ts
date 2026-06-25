@@ -6,21 +6,27 @@ export const dynamic = "force-dynamic"
 
 function parseDateTime(dateStr: string, timeStr: string): Date {
   const cleanTime = timeStr.trim().toUpperCase()
-  const match = cleanTime.match(/^(\d+):(\d+)\s*(AM|PM)$/)
   
   let hours = 10
   let minutes = 0
   
-  if (match) {
-    hours = parseInt(match[1])
-    minutes = parseInt(match[2])
-    const modifier = match[3]
+  const ampmMatch = cleanTime.match(/^(\d+):(\d+)\s*(AM|PM)$/)
+  if (ampmMatch) {
+    hours = parseInt(ampmMatch[1])
+    minutes = parseInt(ampmMatch[2])
+    const modifier = ampmMatch[3]
     
     if (modifier === "PM" && hours < 12) {
       hours += 12
     }
     if (modifier === "AM" && hours === 12) {
       hours = 0
+    }
+  } else {
+    const timeMatch = cleanTime.match(/^(\d+):(\d+)$/)
+    if (timeMatch) {
+      hours = parseInt(timeMatch[1])
+      minutes = parseInt(timeMatch[2])
     }
   }
   

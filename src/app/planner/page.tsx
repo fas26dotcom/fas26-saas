@@ -50,6 +50,24 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 
+function convertTo24Hour(time12h: string): string {
+  const trimmed = time12h.trim().toUpperCase()
+  const match = trimmed.match(/^(\d+):(\d+)\s*(AM|PM)$/)
+  if (!match) return time12h // already 24h
+  
+  let hours = parseInt(match[1])
+  const minutes = match[2]
+  const modifier = match[3]
+  
+  if (hours === 12) {
+    hours = 0
+  }
+  if (modifier === "PM") {
+    hours += 12
+  }
+  return `${String(hours).padStart(2, "0")}:${minutes.padStart(2, "0")}`
+}
+
 interface PlanItem {
   day: number
   date: string
@@ -208,6 +226,22 @@ export default function PlannerPage() {
         return newPlan
       })
     }
+  }
+
+  const handleUpdatePostDate = (index: number, newDate: string) => {
+    setPlan(prevPlan => {
+      const newPlan = [...prevPlan]
+      newPlan[index] = { ...newPlan[index], date: newDate }
+      return newPlan
+    })
+  }
+
+  const handleUpdatePostTime = (index: number, newTime: string) => {
+    setPlan(prevPlan => {
+      const newPlan = [...prevPlan]
+      newPlan[index] = { ...newPlan[index], time: newTime }
+      return newPlan
+    })
   }
 
   const handleGeneratePlan = async () => {
@@ -507,10 +541,31 @@ export default function PlannerPage() {
                       <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-500/10">
                         Day {item.day}
                       </span>
-                      <span className="text-xs font-bold text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                        {item.date} at {item.time}
-                      </span>
+                      {item.isScheduled ? (
+                        <span className="text-xs font-bold text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          {item.date} at {item.time}
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          <input
+                            type="date"
+                            value={item.date}
+                            onChange={(e) => handleUpdatePostDate(idx, e.target.value)}
+                            disabled={item.isPublishing || item.isScheduling}
+                            className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[11px] font-bold"
+                          />
+                          <span>at</span>
+                          <input
+                            type="time"
+                            value={convertTo24Hour(item.time)}
+                            onChange={(e) => handleUpdatePostTime(idx, e.target.value)}
+                            disabled={item.isPublishing || item.isScheduling}
+                            className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[11px] font-bold"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="p-2 rounded-xl bg-slate-100/50 dark:bg-slate-800/50">
                       {getPlatformIcon(platform)}
