@@ -185,6 +185,31 @@ export default function PlannerPage() {
 
     try {
       const item = plan[index]
+      
+      // Parse date/time in the browser's local timezone
+      const cleanTime = item.time.trim().toUpperCase()
+      let hours = 10
+      let minutes = 0
+      
+      const ampmMatch = cleanTime.match(/^(\d+):(\d+)\s*(AM|PM)$/)
+      if (ampmMatch) {
+        hours = parseInt(ampmMatch[1])
+        minutes = parseInt(ampmMatch[2])
+        const modifier = ampmMatch[3]
+        if (modifier === "PM" && hours < 12) hours += 12
+        if (modifier === "AM" && hours === 12) hours = 0
+      } else {
+        const timeMatch = cleanTime.match(/^(\d+):(\d+)$/)
+        if (timeMatch) {
+          hours = parseInt(timeMatch[1])
+          minutes = parseInt(timeMatch[2])
+        }
+      }
+      
+      const [year, month, day] = item.date.split("-").map(Number)
+      const localDate = new Date(year, month - 1, day, hours, minutes, 0)
+      const scheduledAt = localDate.toISOString()
+
       const response = await fetch("/api/generate/planner/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,6 +218,7 @@ export default function PlannerPage() {
           imageUrl: item.generatedImageUrl,
           date: item.date,
           time: item.time,
+          scheduledAt,
           platform
         })
       })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getUserFromRequest } from "@/lib/auth"
+import { checkAndPublishDuePosts } from "@/lib/scheduler"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +19,11 @@ export async function GET(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json({ connected: false })
     }
+
+    // Trigger opportunistic background publication check for this user's workspace
+    checkAndPublishDuePosts(workspace.id).catch((err) => {
+      console.error("Opportunistic background publication error:", err)
+    })
 
     const integration = await prisma.integration.findFirst({
       where: {

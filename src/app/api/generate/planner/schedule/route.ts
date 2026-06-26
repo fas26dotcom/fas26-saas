@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { postContent, imageUrl, date, time, platform } = await request.json()
+    const { postContent, imageUrl, date, time, scheduledAt, platform } = await request.json()
 
     if (!postContent?.trim()) {
       return NextResponse.json({ error: "Post content is required" }, { status: 400 })
     }
-    if (!date || !time) {
-      return NextResponse.json({ error: "Date and time are required for scheduling" }, { status: 400 })
+    if (!scheduledAt && (!date || !time)) {
+      return NextResponse.json({ error: "Date and time (or scheduledAt) are required for scheduling" }, { status: 400 })
     }
 
     // Find user workspace and integration
@@ -75,14 +75,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const scheduledAt = parseDateTime(date, time)
+    const scheduledAtDate = scheduledAt ? new Date(scheduledAt) : parseDateTime(date, time)
 
     const newScheduledPost = await prisma.scheduledPost.create({
       data: {
         platform: targetPlatform.toLowerCase(),
         postContent,
         imageUrl,
-        scheduledAt,
+        scheduledAt: scheduledAtDate,
         status: "SCHEDULED",
         workspaceId: workspace.id,
         userId: user.id
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Post successfully scheduled!",
       scheduledPostId: newScheduledPost.id,
-      scheduledAt: scheduledAt.toISOString()
+      scheduledAt: scheduledAtDate.toISOString()
     })
 
   } catch (error: any) {
