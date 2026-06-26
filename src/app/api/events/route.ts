@@ -90,6 +90,27 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  // Synchronize delete with ScheduledPost if it's a social/scheduled post event
+  const isSocialType = ["social", "linkedin", "twitter", "instagram", "blog"].includes(event.type.toLowerCase())
+  if (isSocialType) {
+    try {
+      const scheduledPosts = await prisma.scheduledPost.findMany({
+        where: {
+          userId: user.id,
+          status: "SCHEDULED"
+        }
+      })
+      const matchedPost = scheduledPosts.find(post => event.title.includes(post.postContent))
+      if (matchedPost) {
+        await prisma.scheduledPost.delete({
+          where: { id: matchedPost.id }
+        })
+      }
+    } catch (syncErr: any) {
+      console.error("Failed to delete scheduled post on calendar delete:", syncErr.message)
+    }
+  }
+
   await prisma.calendarEvent.delete({
     where: { id },
   })
@@ -135,6 +156,67 @@ export async function PATCH(request: NextRequest) {
     },
   })
 
+  // Synchronize with ScheduledPost if it's a social/scheduled post event
+  const isSocialType = ["social", "linkedin", "twitter", "instagram", "blog"].includes((type || event.type).toLowerCase())
+  if (isSocialType) {
+    try {
+      const scheduledPosts = await prisma.scheduledPost.findMany({
+        where: {
+          userId: user.id,
+          status: "SCHEDULED"
+        }
+      })
+      const matchedPost = scheduledPosts.find(post => event.title.includes(post.postContent))
+      if (matchedPost) {
+        const targetDate = date !== undefined ? date : event.date
+        const targetTime = time !== undefined ? time : event.time
+        const scheduledAtDate = parseDateTimeLocal(targetDate, targetTime)
+        
+        await prisma.scheduledPost.update({
+          where: { id: matchedPost.id },
+          data: {
+            scheduledAt: scheduledAtDate,
+            postContent: title !== undefined && title.includes("\n") ? extractPostContentFromTitle(title) : matchedPost.postContent
+          }
+        })
+      }
+    } catch (syncErr: any) {
+      console.error("Failed to sync scheduled post on calendar edit:", syncErr.message)
+    }
+  }
+
   return NextResponse.json({ event: updatedEvent })
+}
+
+// Helpers for Calendar/Scheduler Sync
+function parseDateTimeLocal(dateStr: string, timeStr: string): Date {
+  const cleanTime = timeStr.trim().toUpperCase()
+  let hours = 10
+  let minutes = 0
+  const ampmMatch = cleanTime.match(/^(\d+):(\d+)\s*(AM|PM)$/)
+  if (ampmMatch) {
+    hours = parseInt(ampmMatch[1])
+    minutes = parseInt(ampmMatch[2])
+    const modifier = ampmMatch[3]
+    if (modifier === "PM" && hours < 12) hours += 12
+    if (modifier === "AM" && hours === 12) hours = 0
+  } else {
+    const timeMatch = cleanTime.match(/^(\d+):(\d+)$/)
+    if (timeMatch) {
+      hours = parseInt(timeMatch[1])
+      minutes = parseInt(timeMatch[2])
+    }
+  }
+  const [year, month, day] = dateStr.split("-").map(Number)
+  return new Date(year, month - 1, day, hours, minutes, 0)
+}
+
+function extractPostContentFromTitle(titleStr: string): string {
+  let content = titleStr.replace(/^\[[A-Za-z]+\]\s*/i, "")
+  const parts = content.split("\n\n")
+  if (parts.length >= 2) {
+    return parts[1] || content
+  }
+  return content
 }
 

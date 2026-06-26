@@ -89,6 +89,29 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Look for matching CalendarEvent to keep in sync
+    try {
+      const calendarEvent = await prisma.calendarEvent.findFirst({
+        where: {
+          userId: user.id,
+          title: {
+            contains: postContent
+          }
+        }
+      })
+      if (calendarEvent) {
+        await prisma.calendarEvent.update({
+          where: { id: calendarEvent.id },
+          data: {
+            date: date || scheduledAtDate.toISOString().split("T")[0],
+            time: time || "10:00 AM"
+          }
+        })
+      }
+    } catch (syncErr: any) {
+      console.error("Failed to sync calendar event on schedule:", syncErr.message)
+    }
+
     return NextResponse.json({
       success: true,
       message: "Post successfully scheduled!",
